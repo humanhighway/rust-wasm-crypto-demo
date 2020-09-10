@@ -1,9 +1,5 @@
 import Emitter from 'eventemitter3';
-
-let onSocketMessage;
-let onSocketOpen;
-window.onSocketOpen = message => onSocketOpen(message);
-window.onSocketMessage = message => onSocketMessage(message);
+import worker from './socket.worker';
 
 let socket;
 export function getSocket() {
@@ -19,24 +15,24 @@ export const eventTypes = {
 class WasmSocket extends Emitter {
   constructor() {
     super();
-    this.onOpen = this.onOpen.bind(this);
+    this.worker = worker();
     this.onMessage = this.onMessage.bind(this);
-    onSocketMessage = this.onMessage;
-    onSocketOpen = this.onOpen;
-    import('./../../wasm/pkg/wasm').then(wasm => {
-      this.wasm = wasm;
-    });
+    this.worker.addEventListener('message', this.onMessage);
   }
 
   send(message) {
-    this.wasm.send(JSON.stringify(message));
+    this.worker.send(JSON.stringify(message));
   }
 
-  onOpen() {
-    this.emit(eventTypes.OPEN);
-  }
-
-  onMessage(message) {
-    this.emit(eventTypes.MESSAGE, JSON.parse(message));
+  onMessage({ data }) {
+    switch (data.type) {
+      case eventTypes.OPEN:
+        this.emit(eventTypes.OPEN);
+        break;
+      case eventTypes.MESSAGE:
+        const { message } = data;
+        this.emit(eventTypes.MESSAGE, JSON.parse(message));
+        break;
+    }
   }
 }

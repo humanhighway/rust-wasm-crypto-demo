@@ -19,6 +19,7 @@ const webpackConfig = {
   },
   output: {
     path: path.resolve(__dirname, './dist'),
+    globalObject: 'this',
     publicPath: '',
     filename: 'app.js',
   },
@@ -44,6 +45,13 @@ const webpackConfig = {
             options: { sourceMap: dev },
           }
         ],
+      },
+      {
+        test: /\.worker.js$/,
+        exclude: [/node_modules|vendor/],
+        use: [{
+          loader: 'workerize-loader',
+        }],
       },
     ],
   },
